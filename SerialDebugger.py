@@ -19,6 +19,7 @@ class Application(tk.Frame):
         self.master.wm_title('Serial Debugger')
         self._serial_lock = threading.Lock()
         self._baudrate_prev = '9600'
+        self._encoding_prev = sys.getdefaultencoding()
         self._baudrate_list = [str(600 * 2**x) for x in range(9)]
         self._baudrate_list.append('Other...')
         self._create_widgets()
@@ -79,7 +80,8 @@ class Application(tk.Frame):
         self._encoding_label = tk.Label(self, text='Encoding:').grid(row=6, sticky=tk.W)
         self._encoding_variable = tk.StringVar(self)
         self._encoding_variable.set(sys.getdefaultencoding())
-        self._encoding_options = tk.OptionMenu(self, self._encoding_variable, self._encoding_variable.get(), 'UTF-8')
+        self._encoding_variable.trace('w', self._encoding_callback)
+        self._encoding_options = tk.OptionMenu(self, self._encoding_variable, self._encoding_variable.get(), 'Other...')
         self._encoding_options.grid(row=6, column=1, sticky='ew')
         self._encoding_options.configure(anchor='w')
                 
@@ -149,26 +151,48 @@ class Application(tk.Frame):
     def _baudrate_callback(self, *args):
         self._baudrate = self._baudrate_options.cget('text')
         if self._baudrate == 'Other...':
-            self.w = PopupWindow(self)
+            self.w = PopupWindow(self, 'Custom Baudrate:')
             self.master.wait_window(self.w.top)
-            if self._ret_value == 'ERR':
+            try:
+                if self._ret_value == 'ERR':
+                    self._baudrate_variable.set(self._baudrate_prev)
+                else:
+                    self._baudrate_variable.set(self._ret_value)
+                    self._baudrate_prev = self._ret_value
+            except:
                 self._baudrate_variable.set(self._baudrate_prev)
-            else:
-                self._baudrate_variable.set(self._ret_value)
-                self._baudrate_prev = self._ret_value
             self._baudrate_options.destroy()
             self._baudrate_options = tk.OptionMenu(self, self._baudrate_variable, *self._baudrate_list)
             self._baudrate_options.grid(row=1, column=1, sticky='ew')
             self._baudrate_options.configure(anchor='w')
         else:
             self._baudrate_prev = self._baudrate_options.cget('text')
+            
+    
+    def _encoding_callback(self, *args):
+        self._encoding = self._encoding_options.cget('text')
+        if self._encoding == 'Other...':
+            self.w = PopupWindow(self, 'Custom Encoding:')
+            self.master.wait_window(self.w.top)
+            try:
+                if self._ret_value == 'ERR':
+                    self._encoding_variable.set(self._encoding_prev)
+                else:
+                    self._encoding_variable.set(self._ret_value)
+                    self._encoding_prev = self._ret_value
+            except:
+                self._encoding_variable.set(self._encoding_prev)
+            self._encoding_options.destroy()
+            self._encoding_options = tk.OptionMenu(self, self._encoding_variable, sys.getdefaultencoding(), 'Other...')
+            self._encoding_options.grid(row=6, column=1, sticky='ew')
+            self._encoding_options.configure(anchor='w')
 
                 
 class PopupWindow(tk.Frame):
-    def __init__(self, base):
+    def __init__(self, base, text):
         tk.Frame.__init__(self)
         top = self.top=tk.Toplevel(base)
-        self._label = tk.Label(top, text='Custom Baudrate:').grid(row=0)
+        self._label = tk.Label(top, text=text).grid(row=0)
         self._entry = tk.Entry(top)
         self._entry.grid(row=0, column=1, columnspan=2)
         self._button_ok = tk.Button(top, text='OK', command= lambda : self._cleanup(base, 'ok')).grid(row=1, column=1)

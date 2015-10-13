@@ -1,14 +1,22 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import serial
-import tkinter as tk
-import tkinter.scrolledtext as tkst
-import glob
 import sys
+import glob
 from os import linesep
 import threading
 
-from tkinter import StringVar
+# Python 2.7, etc.
+if sys.version_info[0] < 3:
+    import Tkinter as tk
+    import ScrolledText as tkst
+    from Tkinter import StringVar
+# Python 3.x
+else:
+    import tkinter as tk
+    import tkinter.scrolledtext as tkst
+    from tkinter import StringVar
+
 
 
 class Application(tk.Frame):
@@ -105,9 +113,7 @@ class Application(tk.Frame):
     def _cleanup(self):
         try:
             if self._thread.is_alive():
-                print('killing thread')
                 self._thread._stop()
-                pass
         except:
             pass
         self.master.destroy()
@@ -146,7 +152,7 @@ class Application(tk.Frame):
                 self._serial_scrolltext.insert(tk.END, t + linesep)
                 self._serial_scrolltext.see(tk.END)
             except:
-                pass
+                exit()
             
     def _baudrate_callback(self, *args):
         self._baudrate = self._baudrate_options.cget('text')
@@ -239,9 +245,13 @@ def task():
         app._serial_options.configure(anchor='w')
     app._serial_lock.release()
     root.after(250, task)
+    
+def on_close():
+    app._cleanup()
 
 if __name__ == '__main__':
     root = tk.Tk()
-    app = Application(root)   
+    app = Application(root)
+    root.protocol('WM_DELETE_WINDOW', on_close)
     root.after(500, task)
     app.mainloop()
